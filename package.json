@@ -1,0 +1,26 @@
+{
+  "name": "os-release-view-plugin",
+  "version": "1.0.0",
+  "description": "View release events",
+  "scripts": {
+    "build": "grafana-toolkit plugin:build",
+    "test": "grafana-toolkit plugin:test",
+    "dev": "grafana-toolkit plugin:dev",
+    "watch": "grafana-toolkit plugin:dev --watch",
+    "sign": "grafana-toolkit plugin:sign",
+    "start": "yarn watch"
+  },
+  "author": "Hang Sun",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@grafana/data": "8.1.1",
+    "@grafana/runtime": "8.1.1",
+    "@grafana/toolkit": "8.1.1",
+    "@grafana/ui": "8.1.1",
+    "emotion": "10.0.0",
+    "@emotion/core": "^10.1.1"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
