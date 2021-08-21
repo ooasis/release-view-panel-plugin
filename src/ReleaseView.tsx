@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { AnnotationEvent, DataFrame, FieldType, GrafanaTheme2, MutableDataFrame, PanelProps, toDataFrame } from '@grafana/data';
+import {
+  AnnotationEvent,
+  DataFrame,
+  FieldType,
+  GrafanaTheme2,
+  MutableDataFrame,
+  PanelProps,
+  toDataFrame,
+} from '@grafana/data';
 import { ReleaseViewOptions } from 'types';
 import { css, cx } from 'emotion';
-import {  Table, useStyles2 } from '@grafana/ui';
+import { Table, useStyles2 } from '@grafana/ui';
 import { getBackendSrv } from '@grafana/runtime';
 import { applyFieldOverrides, createTheme } from '@grafana/data';
 
@@ -22,34 +30,12 @@ interface ReleaseDTO {
   notes?: string;
 }
 
-// type ReleaseAnno = {
-//   time?: number;
-//   tags?: string;
-//   release?: string;
-//   rallyArtifact?: string;
-//   rallyArtifactUrl?: string;
-//   gitlabProject?: string;
-//   gitlabDiffUrl?: string;
-//   rt?: string;
-//   rtUrl?: string;
-//   releaseTag?: string;
-//   rollbackTag?: string;
-// };
-
-export const ReleaseViewPanel: React.FC<Props> = ({ options, data, width, height, timeRange, replaceVariables }) => {
-  const  styles  = useStyles2(getStyles);
+export const ReleaseViewPanel: React.FC<Props> = ({ options, width, height, timeRange, replaceVariables }) => {
+  const styles = useStyles2(getStyles);
 
   const [annotations, setAnnotations] = useState<DataFrame>(toDataFrame([]));
 
   const fetchAnnotations = async () => {
-    const params: any = {
-      tags: 'release',
-      limit: 100,
-      type: 'annotation',
-      from: timeRange.from.valueOf(),
-      to: timeRange.to.valueOf(),
-    };
-
     const frame = new MutableDataFrame({
       fields: [
         {
@@ -80,7 +66,7 @@ export const ReleaseViewPanel: React.FC<Props> = ({ options, data, width, height
           },
         },
         {
-          name: 'Story/Defect',
+          name: 'Story/Ticket',
           type: FieldType.string,
           config: {
             custom: {
@@ -89,7 +75,7 @@ export const ReleaseViewPanel: React.FC<Props> = ({ options, data, width, height
             links: [
               {
                 targetBlank: true,
-                title: 'Rally Link',
+                title: 'Story/Ticket Link',
                 url: '${__data.fields.L1}',
               },
             ],
@@ -138,73 +124,67 @@ export const ReleaseViewPanel: React.FC<Props> = ({ options, data, width, height
             },
           },
         },
-      ],      
+      ],
     });
 
+    const params: any = {
+      tags: 'release',
+      limit: 200,
+      type: 'annotation',
+      from: timeRange.from.valueOf(),
+      to: timeRange.to.valueOf(),
+    };
     const raw: Array<AnnotationEvent> = await getBackendSrv().get('/api/annotations', params, `anno-view-panel`);
+
     raw.forEach((r) => {
-      const release = r.text?.split("\n")[0];
-      const rawReleaseData = r.text?.split("\n").slice(-1)[0];
+      const rawReleaseData = r.text?.split('\n').slice(-1)[0];
       const releaseDTO: ReleaseDTO = rawReleaseData ? JSON.parse(rawReleaseData) : {};
 
-      // const rallyArtifact = releaseDTO.rallyArtifact?.split(":")[2];
-      const rallyProjectId = releaseDTO.rallyProject?.split(":")[0];
-      const rallyProject = releaseDTO.rallyProject?.split(":")[1];
-      const rallyArtifactId = releaseDTO.rallyArtifact?.split(":")[0];
-      const rallyArtifactType = releaseDTO.rallyArtifact?.split(":")[1] === 'story' ? 'userstory' : 'defect';
-      const rallyArtifactUrl = `https://rally1.rallydev.com/#/${rallyProjectId}/dashboard?detail=%2F${rallyArtifactType}%2F${rallyArtifactId}&fdp=true`;
+      const rallyProjectId = releaseDTO.rallyProject?.split(':')[0];
+      const rallyProject = releaseDTO.rallyProject?.split(':')[1];
+      const rallyArtifactId = releaseDTO.rallyArtifact?.split(':')[0];
+      const rallyArtifactType = releaseDTO.rallyArtifact?.split(':')[1];
+      const rallyArtifactUrl = `${options.rallyUrl}/#/${rallyProjectId}/dashboard?detail=%2F${rallyArtifactType}%2F${rallyArtifactId}&fdp=true`;
+      const story = releaseDTO.rallyArtifact?.split(':')[2];
+      const ticket = releaseDTO.rt;
 
-      const gitlabGroup = releaseDTO.gitlabGroup?.split(":")[1];
-      const gitlabProject = releaseDTO.gitlabProject?.split(":")[1];
-      const releaseTag = releaseDTO.releaseTag?.split(":")[0];
-      const rollbackTag = releaseDTO.rollbackTag?.split(":")[0];
-      const gitlabDiffUrl = `http://gitlab.shopzilla.com/${gitlabGroup}/${gitlabProject}/-/compare/${releaseTag}...${rollbackTag}`;
+      const gitlabGroup = releaseDTO.gitlabGroup?.split(':')[1];
+      const gitlabProject = releaseDTO.gitlabProject?.split(':')[1];
+      const releaseTag = releaseDTO.releaseTag?.split(':')[0];
+      const rollbackTag = releaseDTO.rollbackTag?.split(':')[0];
+      const gitlabDiffUrl = releaseTag
+        ? `${options.gitlabUrl}/${gitlabGroup}/${gitlabProject}/-/compare/${rollbackTag}...${releaseTag}`
+        : `${options.ticketUrlTemplate}`;
 
       frame.appendRow([
         r.time,
         rallyProject,
-        // rallyArtifact,
         gitlabProject,
-        // rt: releaseDTO.rt,
-        // rtUrl: `${releaseDTO.rt}`,
-        release,
+        story || ticket,
         releaseTag,
         rollbackTag,
-        // r.tags?.join(", "),
         rallyArtifactUrl,
         gitlabDiffUrl,
       ]);
-    })
+    });
 
-    const styledFrame = applyFieldOverrides({
+    const displayFrame = applyFieldOverrides({
       data: [frame],
       fieldConfig: {
         defaults: {},
-        overrides: [{
-          "matcher": {
-            "id": "byRegexp",
-            "options": "L.+"
-          },
-          "properties": [
-            {
-              "id": "custom.width",
-              "value": 1
-            }
-          ]
-        }],
+        overrides: [],
       },
       replaceVariables: replaceVariables,
       theme: createTheme(),
     })[0];
 
-    setAnnotations(styledFrame);
+    setAnnotations(displayFrame);
   };
 
   useEffect(() => {
     fetchAnnotations();
   }, []);
 
- 
   return (
     <div
       className={cx(

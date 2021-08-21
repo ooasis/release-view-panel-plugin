@@ -1,3 +1,5 @@
 export interface ReleaseViewOptions {
-  text: string;
+  rallyUrl: string;
+  gitlabUrl: string;
+  ticketUrlTemplate: string;
 }
