@@ -147,14 +147,13 @@ export const ReleaseViewPanel: React.FC<Props> = ({ options, width, height, time
       const rallyArtifactUrl = `${options.rallyUrl}/#/${rallyProjectId}/dashboard?detail=%2F${rallyArtifactType}%2F${rallyArtifactId}&fdp=true`;
       const story = releaseDTO.rallyArtifact?.split(':')[2];
       const ticket = releaseDTO.rt;
+      const ticketUrl = options.ticketUrlTemplate.replace('${ticket}', ticket || 'NA');
 
       const gitlabGroup = releaseDTO.gitlabGroup?.split(':')[1];
       const gitlabProject = releaseDTO.gitlabProject?.split(':')[1];
       const releaseTag = releaseDTO.releaseTag?.split(':')[0];
       const rollbackTag = releaseDTO.rollbackTag?.split(':')[0];
-      const gitlabDiffUrl = releaseTag
-        ? `${options.gitlabUrl}/${gitlabGroup}/${gitlabProject}/-/compare/${rollbackTag}...${releaseTag}`
-        : `${options.ticketUrlTemplate}`;
+      const gitlabDiffUrl = `${options.gitlabUrl}/${gitlabGroup}/${gitlabProject}/-/compare/${rollbackTag}...${releaseTag}`;
 
       frame.appendRow([
         r.time,
@@ -163,7 +162,7 @@ export const ReleaseViewPanel: React.FC<Props> = ({ options, width, height, time
         story || ticket,
         releaseTag,
         rollbackTag,
-        rallyArtifactUrl,
+        ticket ? ticketUrl : rallyArtifactUrl,
         gitlabDiffUrl,
       ]);
     });
